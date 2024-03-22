@@ -1,4 +1,5 @@
-import { createLogger, format, transports } from 'winston';
+import { createLogger, format, transports } from "winston";
+import "winston-daily-rotate-file";
 
 const { combine, timestamp, printf, colorize, errors, } = format;
 
@@ -18,7 +19,14 @@ const logger = createLogger({
   ),
   transports: [
     new transports.Console(),
-    new transports.File({ filename: "log/log" }),
+    new transports.DailyRotateFile({
+      dirname: "log",
+      filename: "%DATE%.log",
+      datePattern: "YYYY-MM-DD",
+      zippedArchive: true,
+      maxSize: "20m",
+      maxFiles: "14d",
+    }),
   ],
 });
 

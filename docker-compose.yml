@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  puppeteer-crawler:
+    build:
+      context: .
+    image: ivannglivelyimpact/puppeteer-crawler:1.0.0
+    container_name: puppeteer-crawler
+    ports:
+      - 3000:3000
+    volumes:
+      - ./log:/app/log
+      - ./output:/app/output

@@ -7,8 +7,5 @@ With Puppeteer, the app launches a headless Chrome browser, navigates to the req
 
 # Scripts
 - `npm start` Starts the development server with nodemon.
+- `npm run build`
 - `npm run typegen`  Generates schema typescript files.
-
-# Environment
-- Node: v18.18.2
-- NPM: 9.8.1

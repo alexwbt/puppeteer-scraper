@@ -47,6 +47,6 @@ useRequestHandler({
   },
 });
 
-crawlerRouter.use("/output", express.static("output"))
+crawlerRouter.use("/output", express.static("output"));
 
 export default crawlerRouter;

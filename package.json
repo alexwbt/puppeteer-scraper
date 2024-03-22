@@ -4,6 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon",
+    "build": "rm -rf ./build && tsc --build",
     "typegen": "ts-node scripts/generateSchemaTypes.ts"
   },
   "devDependencies": {
@@ -24,6 +25,7 @@
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-adblocker": "^2.13.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
-    "winston": "^3.12.0"
+    "winston": "^3.12.0",
+    "winston-daily-rotate-file": "^5.0.0"
   }
 }
