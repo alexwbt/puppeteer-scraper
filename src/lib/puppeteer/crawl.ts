@@ -1,7 +1,14 @@
-import puppeteer, { Browser, GoToOptions, Page, PuppeteerLaunchOptions } from "puppeteer";
+import { Browser, GoToOptions, Page, PuppeteerLaunchOptions } from "puppeteer";
+import puppeteer from "puppeteer-extra";
+import AdblockerPlugin from "puppeteer-extra-plugin-adblocker";
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import logger from "../util/logger";
 import CrawlerPageGetter from "./getter";
 import CrawlerOutput from "./output";
+
+puppeteer
+  .use(StealthPlugin())
+  .use(AdblockerPlugin({ blockTrackers: true }));
 
 export type CrawlerWaitOption = {
   timeout?: number;
@@ -279,12 +286,12 @@ const crawl = async (state: CrawlerState, crawlerPage: RootCrawlerPageOption, id
     await output.debugLog(rootPageGetter, `Input: ${JSON.stringify(crawlerPage, undefined, 2)}`);
 
     await crawlPage(state, rootPageGetter, crawlerPage, output);
-    state.childState = {...state.childState, completed: true };
+    state.childState = { ...state.childState, completed: true };
 
     logger.info(`Complete crawling (id: ${id}): ${crawlerPage.url}`);
     await output.debugLog(rootPageGetter, `Completed`);
   } catch (e) {
-    state.childState = {...state.childState, error: `${e}` };
+    state.childState = { ...state.childState, error: `${e}` };
     logger.error(`Exception thrown while crawling (id: ${id}):`, e);
     await output.debugLog(rootPageGetter, `${e}`);
   }
