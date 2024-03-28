@@ -1,67 +1,17 @@
-import { GoToOptions, Page, PuppeteerLaunchOptions } from "puppeteer";
+import { Page } from "puppeteer";
 import puppeteer from "puppeteer-extra";
 import AdblockerPlugin from "puppeteer-extra-plugin-adblocker";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import logger from "../util/logger";
 import CrawlerPageGetter from "./getter";
 import CrawlerOutput from "./output";
+import { CrawlerPageOption, CrawlerState, CrawlerWaitOption, RootCrawlerPageOption } from "./types";
+
+export const USER_STOPPAGE = "User Stoppage";
 
 puppeteer
   .use(StealthPlugin())
   .use(AdblockerPlugin({ blockTrackers: true }));
-
-export type CrawlerWaitOption = {
-  timeout?: number;
-  waitForSelector?: string;
-  waitForAbsenceOfSelector?: string;
-
-  clickIfExistSelector?: string;
-  clickIfExistWaitOption?: CrawlerWaitOption;
-};
-
-export type ReuseTabOption = {
-  childrenBackMethod: "closeNewTab" | "browserBack" | "backSelector" | "noAction";
-  childrenBackSelector?: string;
-  childrenBackWaitOption?: CrawlerWaitOption;
-};
-
-export type CrawlerPageOption = {
-  waitOption?: CrawlerWaitOption;
-
-  reuseTab?: ReuseTabOption;
-
-  saveContent?: boolean;
-  fieldSelector?: { [key: string]: string };
-
-  linkSelector?: string;
-  linkTriggerWaitOption?: CrawlerWaitOption;
-
-  childrenPage: {
-    [url: string]: CrawlerPageOption | undefined;
-  };
-
-  linkLoaderLimit?: number;
-  linkLoaderSelector?: string;
-  linkLoaderMethod?: "windowScrollToBottom";
-  linkLoaderTriggerWaitOption?: CrawlerWaitOption;
-};
-
-export type RootCrawlerPageOption = CrawlerPageOption & {
-  url: string;
-
-  launchOption?: PuppeteerLaunchOptions;
-  navigateOption?: GoToOptions;
-};
-
-export type CrawlerState = {
-  error?: string;
-  completed?: boolean;
-  linkLoaderIndex?: number;
-  linkElementIndex?: number;
-  tabIndex?: number;
-  childState?: CrawlerState;
-  output?: string[];
-};
 
 const selectElementByOuterHTML = async (page: Page, outerHTML: string, selector: string) => {
   const elements = await page.$$(selector);
@@ -170,12 +120,6 @@ const triggerLink = async (
 
   // trigger link
   await linkElement.click();
-
-  if (reuseTab && reuseTab.childrenBackMethod !== "closeNewTab")
-    // close all new tabs if childrenBackMethod is not closeNewTab
-    await Promise.all((await linkTriggeringPage.browser().pages())
-      .slice((state.tabIndex || 0) + 1).map(p => p.close()));
-
   await wait(linkTriggeringPage, linkTriggerWaitOption || {});
 
   return await linkTriggeringPage.browser().pages();
@@ -211,18 +155,17 @@ const crawlPage = async (
   if (!childrenPage || Object.keys(childrenPage).length === 0)
     return;
 
-  const linkElementListHtml: string[] = [];
+  if (!parentState.childState) parentState.childState = {};
+  const state = parentState.childState;
+  state.linkLoaderIndex = 0;
+  if (!state.linkElementIndex) state.linkElementIndex = 0;
+  if (!state.linkElementListHtml) state.linkElementListHtml = [];
 
-  const state = parentState.childState = {
-    ...parentState.childState,
-    linkLoaderIndex: 0,
-    linkElementIndex: 0,
-  };
   const hasLinkLoader = linkLoaderSelector || linkLoaderMethod;
   const linkLoadLimit = hasLinkLoader ? (linkLoaderLimit || 10) : 0;
   for (; state.linkLoaderIndex <= linkLoadLimit; state.linkLoaderIndex++) {
     const page = await pageGetter.getPage();
-    if (!page) return [];
+    if (!page) return;
 
     await triggerLinkLoader(state, page, option);
 
@@ -232,13 +175,13 @@ const crawlPage = async (
         .map(e => page.evaluate(e => e.outerHTML, e)));
 
     // filter duplicate links
-    const filtered = newLinkElementListHtml.filter(e => !linkElementListHtml.includes(e));
-    linkElementListHtml.push(...filtered);
+    const filtered = newLinkElementListHtml.filter(e => !state.linkElementListHtml?.includes(e));
+    state.linkElementListHtml.push(...filtered);
 
     output.debugLog(pageGetter, JSON.stringify({ ...state, newElements: filtered }, undefined, 2));
 
-    for (; state.linkElementIndex < linkElementListHtml.length; state.linkElementIndex++) {
-      const linkElementHtml = linkElementListHtml[state.linkElementIndex];
+    for (; state.linkElementIndex < state.linkElementListHtml.length; state.linkElementIndex++) {
+      const linkElementHtml = state.linkElementListHtml[state.linkElementIndex];
 
       try {
         const pages = await triggerLink(state, pageGetter, linkElementHtml, option);
@@ -265,6 +208,7 @@ const crawlPage = async (
           try {
             await crawlPage(state, childPageGetter, childPageOption, output);
           } catch (error: any) {
+            if (error === USER_STOPPAGE) throw USER_STOPPAGE;
             await output.debugLog(childPageGetter, `${error}`);
             logger.debug(error);
           }
@@ -291,6 +235,7 @@ const crawlPage = async (
         }
 
       } catch (error: any) {
+        if (error === USER_STOPPAGE) throw USER_STOPPAGE;
         await output.debugLog(pageGetter, `${linkElementHtml}: ${error}`);
         logger.debug(error);
       }
@@ -298,10 +243,20 @@ const crawlPage = async (
   }
 };
 
-const crawl = async (state: CrawlerState, crawlerPage: RootCrawlerPageOption, id: string) => {
+const crawl = async (
+  id: string,
+  state: CrawlerState,
+  crawlerPage: RootCrawlerPageOption,
+  onUpdate: () => Promise<void>,
+  onComplete: () => Promise<void>,
+  onError: (error: any) => Promise<void>,
+) => {
+  if (!state.childState) state.childState = {};
+
   const browser = await puppeteer.launch({ ...crawlerPage.launchOption });
 
   const rootPageGetter = new CrawlerPageGetter(async () => {
+    await onUpdate();
     const pages = await browser.pages();
 
     // re-visit root page if the first tab is blank or speedOptimizationOption.reuseTab is false
@@ -314,7 +269,7 @@ const crawl = async (state: CrawlerState, crawlerPage: RootCrawlerPageOption, id
     }
     return pages[0];
   });
-  const output = new CrawlerOutput(id);
+  const output = new CrawlerOutput(id, state.childState);
 
   try {
     logger.info(`Begin crawling (id: ${id}): ${crawlerPage.url}`);
@@ -323,14 +278,22 @@ const crawl = async (state: CrawlerState, crawlerPage: RootCrawlerPageOption, id
     await output.debugLog(rootPageGetter, `Input: ${JSON.stringify(crawlerPage, undefined, 2)}`);
 
     await crawlPage(state, rootPageGetter, crawlerPage, output);
-    state.childState = { ...state.childState, completed: true };
+    state.childState.completed = true;
 
     logger.info(`Complete crawling (id: ${id}): ${crawlerPage.url}`);
-    await output.debugLog(rootPageGetter, `Completed`);
+    await Promise.all([
+      output.debugLog(rootPageGetter, `Completed`),
+      onComplete(),
+    ]);
   } catch (e) {
-    state.childState = { ...state.childState, error: `${e}` };
-    logger.error(`Exception thrown while crawling (id: ${id}):`, e);
-    await output.debugLog(rootPageGetter, `${e}`);
+    if (e !== USER_STOPPAGE) {
+      state.childState.error = `${e}`;
+      logger.error(`Exception thrown while crawling (id: ${id}):`, e);
+      await Promise.all([
+        output.debugLog(rootPageGetter, `${e}`),
+        onError(e),
+      ]);
+    }
   }
   await browser.close();
 };

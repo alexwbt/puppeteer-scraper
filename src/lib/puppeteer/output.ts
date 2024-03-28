@@ -3,6 +3,7 @@ import { createWriteStream, promises as fs } from "fs";
 import https from "https";
 import { Page } from "puppeteer";
 import CrawlerPageGetter from "./getter";
+import { CrawlerState } from "./types";
 
 async function downloadPDF(url: string, outputPath: string) {
   const response = await axios({
@@ -29,13 +30,12 @@ export type FieldSelector = {
 
 export default class CrawlerOutput {
 
-  private savedCount: { [name: string]: number } = {};
-
   constructor(
     private id: string,
+    private state: CrawlerState,
     private outputDir: string = `./output/${id}`,
     private debugDir: string = `./output/debug`,
-  ) { }
+  ) {}
 
   public async init() {
     try { await fs.access(this.outputDir); }
@@ -57,14 +57,16 @@ export default class CrawlerOutput {
 
   public async save(page: Page, fieldSelector?: FieldSelector) {
     const name = page.url().replace(/[&\/\\#,+()$~%.'":*?<>{}]+/g, "_").slice(0, 100);
-    this.savedCount[name] = (this.savedCount[name] || 0) + 1;
+
+    if (!this.state.savedCount) this.state.savedCount = {};
+    this.state.savedCount[name] = (this.state.savedCount[name] || 0) + 1;
 
     const fileType = (() => {
       if (page.url().endsWith(".pdf")) return "pdf";
       if (fieldSelector) return "json";
       return "html";
     })()
-    const fileName = `${this.outputDir}/${name}_${this.savedCount[name]}.${fileType}`;
+    const fileName = `${this.outputDir}/${name}_${this.state.savedCount[name]}.${fileType}`;
 
     switch (fileType) {
       case "pdf":

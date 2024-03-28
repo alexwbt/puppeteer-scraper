@@ -1,5 +1,5 @@
 import Joi, { Schema } from "joi";
-import { CrawlerPageOption, CrawlerWaitOption, ReuseTabOption, RootCrawlerPageOption } from "../../lib/puppeteer/crawl";
+import { CrawlerPageOption, CrawlerWaitOption, ReuseTabOption, RootCrawlerPageOption } from "../../lib/puppeteer/types";
 
 export const CrawlerWaitOptionSchema = Joi.object<CrawlerWaitOption>({
   timeout: Joi.number(),
