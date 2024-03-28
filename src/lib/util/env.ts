@@ -1,3 +1,4 @@
+import dotenv from "dotenv";
 
 export const getEnv = (key: string): string | undefined =>
   process.env[key];
@@ -21,3 +22,9 @@ export const getEnvStringRequired = (key: string): string => {
     throw new Error(`Required variable ${key} is not provided.`);
   return value;
 };
+
+export const ENV = getEnvString("ENV");
+
+dotenv.config({
+  path: `env/${ENV}.env`,
+});

@@ -1,5 +1,6 @@
 import { createLogger, format, transports } from "winston";
 import "winston-daily-rotate-file";
+import { getEnvString } from "./env";
 
 const { combine, timestamp, printf, colorize, errors, } = format;
 
@@ -28,6 +29,7 @@ const logger = createLogger({
       maxFiles: "14d",
     }),
   ],
+  level: getEnvString("LOG_LEVEL", "info"),
 });
 
 export default logger;

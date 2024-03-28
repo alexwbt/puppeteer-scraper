@@ -1,5 +1,5 @@
-import Joi from "joi";
-import { CrawlerPageOption, CrawlerWaitOption, RootCrawlerPageOption } from "../../lib/puppeteer/crawl";
+import Joi, { Schema } from "joi";
+import { CrawlerPageOption, CrawlerWaitOption, ReuseTabOption, RootCrawlerPageOption } from "../../lib/puppeteer/crawl";
 
 export const CrawlerWaitOptionSchema = Joi.object<CrawlerWaitOption>({
   timeout: Joi.number(),
@@ -10,11 +10,19 @@ export const CrawlerWaitOptionSchema = Joi.object<CrawlerWaitOption>({
   clickIfExistWaitOption: Joi.link().ref("#CrawlerWaitOptionSchema"),
 }).id("CrawlerWaitOptionSchema");
 
-const CrawlerPageSchemaContent = {
+export const ReuseTabOptionSchema = Joi.object<ReuseTabOption>({
+  childrenBackMethod: Joi.string().required().valid("closeNewTab", "browserBack", "backSelector", "noAction"),
+  childrenBackSelector: Joi.string(),
+  childrenBackWaitOption: CrawlerWaitOptionSchema,
+});
+
+const CrawlerPageSchemaContent: Record<keyof CrawlerPageOption, Schema> = {
   waitOption: CrawlerWaitOptionSchema,
 
+  reuseTab: ReuseTabOptionSchema,
+
   saveContent: Joi.boolean(),
-  contentSelector: Joi.string(),
+  fieldSelector: Joi.object().pattern(Joi.string(), Joi.string()),
 
   linkSelector: Joi.string(),
   linkTriggerWaitOption: CrawlerWaitOptionSchema,

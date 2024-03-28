@@ -3,6 +3,7 @@ import express from "express";
 import logger from "../lib/util/logger";
 import crawlerRouter from "./router/crawler";
 import notfoundRouter from "./router/notfound";
+import { ENV } from "../lib/util/env";
 
 const app = express();
 app.use(bodyParser.json());
@@ -18,7 +19,10 @@ const startApp = (
   app.use(contextPath, rootRouter);
 
   app.listen(port, () => {
-    logger.info(`Running Server. (PORT: ${port}, CONTEXT_PATH: ${contextPath})`);
+    logger.info(`Running Server. (PORT: ${port}, `
+      + `CONTEXT_PATH: ${contextPath}, `
+      + `LOG_LEVEL: ${logger.level}, `
+      + `ENV: ${ENV})`);
   });
 };
 
