@@ -1,10 +1,10 @@
 import { CrawlState } from "@prisma/client";
 import express from "express";
 import RequestHandlerError from "../../lib/error/RequestHandlerError";
-import prisma from "../../lib/prisma";
 import crawl, { USER_STOPPAGE } from "../../lib/puppeteer/crawl";
 import { CrawlerState, RootCrawlerPageOption } from "../../lib/puppeteer/types";
 import { useRequestHandler } from "../../lib/router/useRequestHandler";
+import { prismaClient } from "../prisma";
 import { GetCrawlerStateSchema, RootCrawlerPageSchema } from "../schema/crawler";
 
 const crawlerRouter = express.Router();
@@ -17,27 +17,27 @@ const _crawl = (id: number, state: CrawlerState, option: RootCrawlerPageOption) 
     // on update
     async () => {
       if (state.stopped) {
-        await prisma.crawl.update({
+        await prismaClient.crawl.update({
           where: { id },
           data: { data: state.childState, state: CrawlState.STOPPED },
         });
         throw USER_STOPPAGE;
       }
-      await prisma.crawl.update({
+      await prismaClient.crawl.update({
         where: { id },
         data: { data: state.childState, state: CrawlState.RUNNING },
       });
     },
     // on complete
     async () => {
-      await prisma.crawl.update({
+      await prismaClient.crawl.update({
         where: { id },
         data: { data: state.childState, state: CrawlState.COMPLETED },
       });
     },
     // on error
     async () => {
-      await prisma.crawl.update({
+      await prismaClient.crawl.update({
         where: { id },
         data: { data: state.childState, state: CrawlState.ERROR },
       });
@@ -55,7 +55,7 @@ useRequestHandler({
 
     const state = { childState: { completed: false } };
 
-    const { id } = await prisma.crawl.create({
+    const { id } = await prismaClient.crawl.create({
       data: {
         data: state.childState,
         option,
@@ -80,7 +80,7 @@ useRequestHandler({
   paramsSchema: GetCrawlerStateSchema,
   requestHandler: async ({ params: { id } }) => {
 
-    const crawlProcess = await prisma.crawl.findFirst({
+    const crawlProcess = await prismaClient.crawl.findFirst({
       where: { id: +id },
     });
     if (!crawlProcess)
@@ -126,7 +126,7 @@ useRequestHandler({
   paramsSchema: GetCrawlerStateSchema,
   requestHandler: async ({ params: { id } }) => {
 
-    const crawlProcess = await prisma.crawl.findFirst({
+    const crawlProcess = await prismaClient.crawl.findFirst({
       where: { id: +id },
       select: { data: true },
     });
