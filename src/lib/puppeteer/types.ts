@@ -38,6 +38,7 @@ export type CrawlerPageOption = {
 
 export type RootCrawlerPageOption = CrawlerPageOption & {
   url: string;
+  proxy?: boolean;
 
   launchOption?: PuppeteerLaunchOptions;
   navigateOption?: GoToOptions;

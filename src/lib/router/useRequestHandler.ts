@@ -11,7 +11,7 @@ export type RequestHandlerRequest<Query, Params, ReqBody> = {
 
 export type RequestHandlerResponse<ResBody> = {
   status: number
-  body: ResBody
+  body?: ResBody
 }
 
 export type UseRequestHandlerConfig<
@@ -64,7 +64,7 @@ export const useRequestHandler = <
       });
 
       // send response
-      res.status(response.status).send(response.body);
+      res.status(response.status)[response.body ? "send" : "end"](response.body);
     } catch (error) {
       if (error instanceof RequestHandlerError) {
         // handle RequestHandlerError

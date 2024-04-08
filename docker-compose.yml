@@ -12,3 +12,6 @@ services:
     volumes:
       - ./log:/app/log
       - ./output:/app/output
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      PROXY_URL: ${PROXY_URL}

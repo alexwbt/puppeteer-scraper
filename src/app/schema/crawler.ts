@@ -40,6 +40,7 @@ export const RootCrawlerPageSchema = Joi.object<RootCrawlerPageOption>({
   ...CrawlerPageSchemaContent,
 
   url: Joi.string().required(),
+  proxy: Joi.boolean(),
 
   launchOption: Joi.object(),
   navigateOption: Joi.object(),

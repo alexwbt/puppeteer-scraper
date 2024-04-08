@@ -1,11 +1,15 @@
+import { anonymizeProxy } from "proxy-chain";
 import { Page } from "puppeteer";
 import puppeteer from "puppeteer-extra";
 import AdblockerPlugin from "puppeteer-extra-plugin-adblocker";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
+import { getEnvStringRequired } from "../util/env";
 import logger from "../util/logger";
 import CrawlerPageGetter from "./getter";
 import CrawlerOutput from "./output";
 import { CrawlerPageOption, CrawlerState, CrawlerWaitOption, RootCrawlerPageOption } from "./types";
+
+const PROXY_URL_PROMISE = anonymizeProxy(getEnvStringRequired("PROXY_URL"));
 
 export const USER_STOPPAGE = "User Stoppage";
 
@@ -130,6 +134,7 @@ const crawlPage = async (
   pageGetter: CrawlerPageGetter,
   option: CrawlerPageOption,
   output: CrawlerOutput,
+  onUpdate: () => Promise<void>,
 ) => {
   const {
     saveContent,
@@ -206,7 +211,8 @@ const crawlPage = async (
           );
           // recursive crawl page
           try {
-            await crawlPage(state, childPageGetter, childPageOption, output);
+            await crawlPage(state, childPageGetter, childPageOption, output, onUpdate);
+            await onUpdate();
           } catch (error: any) {
             if (error === USER_STOPPAGE) throw USER_STOPPAGE;
             await output.debugLog(childPageGetter, `${error}`);
@@ -253,7 +259,15 @@ const crawl = async (
 ) => {
   if (!state.childState) state.childState = {};
 
-  const browser = await puppeteer.launch({ ...crawlerPage.launchOption });
+  const browser = await puppeteer.launch({
+    ...crawlerPage.launchOption,
+    args: [
+      ...(crawlerPage.launchOption?.args || []),
+      ...(crawlerPage.proxy
+        ? [`--proxy-server=${await PROXY_URL_PROMISE}`]
+        : []),
+    ],
+  });
 
   const rootPageGetter = new CrawlerPageGetter(async () => {
     await onUpdate();
@@ -277,7 +291,7 @@ const crawl = async (
     await output.init();
     await output.debugLog(rootPageGetter, `Input: ${JSON.stringify(crawlerPage, undefined, 2)}`);
 
-    await crawlPage(state, rootPageGetter, crawlerPage, output);
+    await crawlPage(state, rootPageGetter, crawlerPage, output, onUpdate);
     state.childState.completed = true;
 
     logger.info(`Complete crawling (id: ${id}): ${crawlerPage.url}`);
@@ -293,6 +307,8 @@ const crawl = async (
         output.debugLog(rootPageGetter, `${e}`),
         onError(e),
       ]);
+    } else {
+      logger.info(`Stopped crawling (id: ${id}): ${crawlerPage.url}`);
     }
   }
   await browser.close();

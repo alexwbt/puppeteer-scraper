@@ -1,9 +1,8 @@
 #! /bin/sh
 
 echo "starting X server and VNC display"
-touch ~/.Xauthority
 Xvfb :1 -screen 0 1500x1000x24 &
-/usr/bin/x11vnc -display :1.0 -quiet &
+x11vnc -display :1.0 -quiet -forever &
 DISPLAY=:1.0
 export DISPLAY
 

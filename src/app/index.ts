@@ -1,9 +1,12 @@
+import { CrawlState } from "@prisma/client";
 import bodyParser from "body-parser";
 import express from "express";
+import { ENV } from "../lib/util/env";
 import logger from "../lib/util/logger";
+import { prismaClient } from "./prisma";
 import crawlerRouter from "./router/crawler";
 import notfoundRouter from "./router/notfound";
-import { ENV } from "../lib/util/env";
+import { crawl } from "./crawl";
 
 const app = express();
 app.use(bodyParser.json());
@@ -24,6 +27,17 @@ const startApp = (
       + `LOG_LEVEL: ${logger.level}, `
       + `ENV: ${ENV})`);
   });
+
+  // resume all running crawlers
+  (async () => {
+    const runningProcesses = await prismaClient.crawl.findMany({
+      where: { state: CrawlState.RUNNING },
+    });
+    for (const process of runningProcesses) {
+      const state = { childState: process.data };
+      crawl(process.id, state, process.option);
+    }
+  })();
 };
 
 export default startApp;
