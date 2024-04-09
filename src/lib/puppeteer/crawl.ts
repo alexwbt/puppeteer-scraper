@@ -1,5 +1,5 @@
 import { anonymizeProxy } from "proxy-chain";
-import { Page } from "puppeteer";
+import { ElementHandle, Page } from "puppeteer";
 import puppeteer from "puppeteer-extra";
 import AdblockerPlugin from "puppeteer-extra-plugin-adblocker";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
@@ -7,7 +7,7 @@ import { getEnvStringRequired } from "../util/env";
 import logger from "../util/logger";
 import CrawlerPageGetter from "./getter";
 import CrawlerOutput from "./output";
-import { CrawlerPageOption, CrawlerState, CrawlerWaitOption, RootCrawlerPageOption } from "./types";
+import { ClickOption, CrawlerPageOption, CrawlerState, CrawlerWaitOption, RootCrawlerPageOption } from "./types";
 
 const PROXY_URL_PROMISE = anonymizeProxy(getEnvStringRequired("PROXY_URL"));
 
@@ -28,6 +28,17 @@ const selectElementByOuterHTML = async (page: Page, outerHTML: string, selector:
   return null;
 };
 
+const click = async (element: ElementHandle<Element>, clickOption?: ClickOption) => {
+  if (clickOption?.jsClick) {
+    await element.evaluate(e => {
+      (e as HTMLElement).click && (e as HTMLElement).click();
+    });
+    return;
+  }
+
+  await element.click(clickOption);
+};
+
 const wait = async (
   page: Page,
   {
@@ -36,6 +47,7 @@ const wait = async (
     waitForAbsenceOfSelector,
 
     clickIfExistSelector,
+    clickIfExistClickOption,
     clickIfExistWaitOption,
   }: CrawlerWaitOption,
   defaultTimeout: number = 5000,
@@ -58,9 +70,11 @@ const wait = async (
   if (clickIfExistSelector) {
     try {
       const elements = await page.$$(clickIfExistSelector);
-      await Promise.all(elements.map(e => e.click()));
-      await wait(page, clickIfExistWaitOption || {});
+      await Promise.all(elements.map(e =>
+        click(e, clickIfExistClickOption).catch(() => { })));
     } catch (e) { }
+
+    await wait(page, clickIfExistWaitOption || {});
   }
 };
 
@@ -108,6 +122,7 @@ const triggerLink = async (
 ) => {
   const {
     linkSelector,
+    linkTriggerClickOption,
     linkTriggerWaitOption,
     reuseTab,
   } = option;
@@ -123,7 +138,7 @@ const triggerLink = async (
   if (!linkElement) return [];
 
   // trigger link
-  await linkElement.click();
+  await click(linkElement, linkTriggerClickOption);
   await wait(linkTriggeringPage, linkTriggerWaitOption || {});
 
   return await linkTriggeringPage.browser().pages();
@@ -192,7 +207,12 @@ const crawlPage = async (
         const pages = await triggerLink(state, pageGetter, linkElementHtml, option);
         const parentTabIndex = parentState.tabIndex || 0;
         // crawl children
-        for (state.tabIndex = parentTabIndex; state.tabIndex < pages.length; state.tabIndex++) {
+        for (
+          state.tabIndex = reuseTab?.childrenBackMethod === "closeNewTab"
+            ? parentTabIndex + 1 : parentTabIndex;
+          state.tabIndex < pages.length;
+          state.tabIndex++
+        ) {
           const childPageOption = findChildPageOption(pages[state.tabIndex], childrenPage);
           if (!childPageOption) continue;
 

@@ -1,4 +1,4 @@
-import { GoToOptions, PuppeteerLaunchOptions } from "puppeteer";
+import { ClickOptions, GoToOptions, PuppeteerLaunchOptions } from "puppeteer";
 
 export type CrawlerWaitOption = {
   timeout?: number;
@@ -6,6 +6,7 @@ export type CrawlerWaitOption = {
   waitForAbsenceOfSelector?: string;
 
   clickIfExistSelector?: string;
+  clickIfExistClickOption?: ClickOption;
   clickIfExistWaitOption?: CrawlerWaitOption;
 };
 
@@ -13,6 +14,10 @@ export type ReuseTabOption = {
   childrenBackMethod: "closeNewTab" | "browserBack" | "backSelector" | "noAction";
   childrenBackSelector?: string;
   childrenBackWaitOption?: CrawlerWaitOption;
+};
+
+export type ClickOption = ClickOptions & {
+  jsClick: boolean;
 };
 
 export type CrawlerPageOption = {
@@ -24,6 +29,7 @@ export type CrawlerPageOption = {
   fieldSelector?: { [key: string]: string };
 
   linkSelector?: string;
+  linkTriggerClickOption?: ClickOption;
   linkTriggerWaitOption?: CrawlerWaitOption;
 
   childrenPage: {

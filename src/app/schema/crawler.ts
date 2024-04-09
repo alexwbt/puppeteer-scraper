@@ -1,5 +1,17 @@
 import Joi, { Schema } from "joi";
-import { CrawlerPageOption, CrawlerWaitOption, ReuseTabOption, RootCrawlerPageOption } from "../../lib/puppeteer/types";
+import { Offset } from "puppeteer";
+import { ClickOption, CrawlerPageOption, CrawlerWaitOption, ReuseTabOption, RootCrawlerPageOption } from "../../lib/puppeteer/types";
+
+const ClickOptionSchema = Joi.object<ClickOption>({
+  jsClick: Joi.boolean(),
+  button: Joi.string().valid("left", "right", "middle", "back", "forward"),
+  delay: Joi.number().min(0),
+  count: Joi.number().min(1),
+  offset: Joi.object<Offset>({
+    x: Joi.number().required(),
+    y: Joi.number().required(),
+  }),
+});
 
 export const CrawlerWaitOptionSchema = Joi.object<CrawlerWaitOption>({
   timeout: Joi.number(),
@@ -7,6 +19,7 @@ export const CrawlerWaitOptionSchema = Joi.object<CrawlerWaitOption>({
   waitForAbsenceOfSelector: Joi.string(),
 
   clickIfExistSelector: Joi.string(),
+  clickIfExistClickOption: ClickOptionSchema,
   clickIfExistWaitOption: Joi.link().ref("#CrawlerWaitOptionSchema"),
 }).id("CrawlerWaitOptionSchema");
 
@@ -25,6 +38,7 @@ const CrawlerPageSchemaContent: Record<keyof CrawlerPageOption, Schema> = {
   fieldSelector: Joi.object().pattern(Joi.string(), Joi.string()),
 
   linkSelector: Joi.string(),
+  linkTriggerClickOption: ClickOptionSchema,
   linkTriggerWaitOption: CrawlerWaitOptionSchema,
 
   childrenPage: Joi.object().pattern(Joi.string(), Joi.link("#CrawlerPageSchema")),
