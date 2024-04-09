@@ -75,14 +75,17 @@ useRequestHandler({
   requestHandler: async ({ params: { id } }) => {
     const crawlProcess = await prismaClient.crawl.findFirst({
       where: { id: +id },
-      select: { data: true },
+      select: { state: true, data: true },
     });
     if (!crawlProcess)
       throw new RequestHandlerError(400, "Invalid id");
 
     return {
       status: 200,
-      body: { state: crawlProcess.data },
+      body: {
+        state: crawlProcess.state,
+        data: crawlProcess.data,
+      },
     };
   },
 });
