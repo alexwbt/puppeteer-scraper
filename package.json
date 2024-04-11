@@ -4,9 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon",
-    "build": "rm -rf ./build && tsc --build",
-    "db:gen": "prisma generate",
-    "db:push": "dotenv -e env/.env -- prisma db push"
+    "build": "rm -rf ./build && tsc --build"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
