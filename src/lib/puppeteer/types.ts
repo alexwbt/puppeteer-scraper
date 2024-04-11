@@ -17,7 +17,7 @@ export type ReuseTabOption = {
 };
 
 export type ClickOption = ClickOptions & {
-  jsClick: boolean;
+  jsClick?: boolean;
 };
 
 export type CrawlerPageOption = {
