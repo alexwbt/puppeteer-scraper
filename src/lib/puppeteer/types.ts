@@ -26,6 +26,7 @@ export type CrawlerPageOption = {
   reuseTab?: ReuseTabOption;
 
   saveContent?: boolean;
+  contentSelector?: string;
   fieldSelector?: { [key: string]: string };
 
   linkSelector?: string;

@@ -154,6 +154,7 @@ const crawlPage = async (
   const {
     saveContent,
     fieldSelector,
+    contentSelector,
     reuseTab,
     linkSelector,
     linkLoaderLimit,
@@ -166,10 +167,10 @@ const crawlPage = async (
   if (!rootPage) return;
 
   if (saveContent) {
-    const fileName = await output.save(rootPage, fieldSelector);
-    await output.debugLog(pageGetter, `Saved to ${fileName}`);
+    const fileNames = await output.save(rootPage, fieldSelector, contentSelector);
+    await output.debugLog(pageGetter, `Saved to ${fileNames.join(",")}`);
     if (!parentState.output) parentState.output = [];
-    parentState.output.push(fileName);
+    parentState.output.push(...fileNames);
   }
 
   if (!childrenPage || Object.keys(childrenPage).length === 0)

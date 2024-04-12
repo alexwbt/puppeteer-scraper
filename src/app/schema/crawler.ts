@@ -35,6 +35,7 @@ const CrawlerPageSchemaContent: Record<keyof CrawlerPageOption, Schema> = {
   reuseTab: ReuseTabOptionSchema,
 
   saveContent: Joi.boolean(),
+  contentSelector: Joi.string(),
   fieldSelector: Joi.object().pattern(Joi.string(), Joi.string()),
 
   linkSelector: Joi.string(),

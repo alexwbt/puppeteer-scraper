@@ -28,6 +28,8 @@ export type FieldSelector = {
   [key: string]: string;
 };
 
+export type FileType = "html" | "json" | "pdf";
+
 export default class CrawlerOutput {
 
   constructor(
@@ -35,7 +37,7 @@ export default class CrawlerOutput {
     private state: CrawlerState,
     private outputDir: string = `./output/${id}`,
     private debugDir: string = `./output/debug`,
-  ) {}
+  ) { }
 
   public async init() {
     try { await fs.access(this.outputDir); }
@@ -55,34 +57,53 @@ export default class CrawlerOutput {
     return output;
   }
 
-  public async save(page: Page, fieldSelector?: FieldSelector) {
+  private async getContent(page: Page, contentSelector?: string) {
+    if (!contentSelector)
+      return await page.content();
+
+    const elements = await page.$$(contentSelector);
+    const content = [];
+    for (const element of elements)
+      content.push(await page.evaluate(e => e.outerHTML, element));
+
+    return content.join("");
+  }
+
+  public async save(
+    page: Page,
+    fieldSelector?: FieldSelector,
+    contentSelector?: string,
+  ) {
     const name = page.url().replace(/[&\/\\#,+()$~%.'":*?<>{}]+/g, "_").slice(0, 100);
 
     if (!this.state.savedCount) this.state.savedCount = {};
-    this.state.savedCount[name] = (this.state.savedCount[name] || 0) + 1;
+    const saveCount = this.state.savedCount[name] = (this.state.savedCount[name] || 0) + 1;
 
-    const fileType = (() => {
-      if (page.url().endsWith(".pdf")) return "pdf";
-      if (fieldSelector) return "json";
-      return "html";
+    const fileTypes: FileType[] = (() => {
+      if (page.url().endsWith(".pdf")) return ["pdf"];
+      if (fieldSelector) return ["html", "json"];
+      return ["html"];
     })()
-    const fileName = `${this.outputDir}/${name}_${this.state.savedCount[name]}.${fileType}`;
 
-    switch (fileType) {
-      case "pdf":
-        await downloadPDF(page.url(), fileName);
-        break;
-      case "html":
-        await fs.writeFile(fileName, await page.content());
-        break;
-      case "json":
-        const fieldContent = await this.getFieldContent(page, fieldSelector || {});
-        const jsonString = JSON.stringify(fieldContent);
-        await fs.writeFile(fileName, jsonString);
-        break;
-    }
+    const fileNames = await Promise.all(fileTypes.map(fileType => (async () => {
+      const fileName = `${this.outputDir}/${name}_${saveCount}.${fileType}`;
+      switch (fileType) {
+        case "pdf":
+          await downloadPDF(page.url(), fileName);
+          break;
+        case "html":
+          await fs.writeFile(fileName, await this.getContent(page, contentSelector));
+          break;
+        case "json":
+          const fieldContent = await this.getFieldContent(page, fieldSelector || {});
+          const jsonString = JSON.stringify(fieldContent);
+          await fs.writeFile(fileName, jsonString);
+          break;
+      }
+      return fileName;
+    })()));
 
-    return fileName;
+    return fileNames;
   }
 
   public async debugLog(pageGetter: CrawlerPageGetter, message: string) {
