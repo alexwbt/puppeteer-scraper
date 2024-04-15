@@ -55,6 +55,7 @@ export const WebhookOptionSchema = Joi.object<WebhookOption>({
   url: Joi.string().required(),
   events: Joi.array().items(Joi.string().valid("RUNNING", "STOPPED", "COMPLETED", "ERROR")),
   headers: Joi.object().pattern(Joi.string(), Joi.string()),
+  outputEventBatchSize: Joi.number(),
 });
 
 export const RootCrawlerPageSchema = Joi.object<RootCrawlerPageOption>({

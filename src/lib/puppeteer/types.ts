@@ -48,6 +48,7 @@ export type WebhookOption = {
   url: string;
   events?: CrawlState[];
   headers?: { [header: string]: string; };
+  outputEventBatchSize?: number;
 };
 
 export type RootCrawlerPageOption = CrawlerPageOption & {

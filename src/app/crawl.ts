@@ -20,8 +20,8 @@ export const crawl = (id: number, state: CrawlerStateData, option: RootCrawlerPa
       data: { data: stateData.childState, state },
     });
     // send webhook event
-    onEvent(id, CrawlState.STOPPED, stateData.childState || {})
-      .catch(e => logger.error("Failed send webhook event.", e));
+    onEvent(id, state, stateData.childState || {})
+      .catch(e => logger.error(`(Crawler: ${id}) Failed send webhook event.`, e));
   };
 
   crawlerStates[id] = state;
