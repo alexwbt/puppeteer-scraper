@@ -48,7 +48,8 @@ export type WebhookOption = {
   url: string;
   events?: CrawlState[];
   headers?: { [header: string]: string; };
-  outputEventBatchSize?: number;
+  minOutputBatchSize?: number;
+  deduplicateOutput?: boolean;
 };
 
 export type RootCrawlerPageOption = CrawlerPageOption & {
@@ -70,4 +71,9 @@ export type CrawlerStateData = {
   output?: string[];
   savedCount?: { [name: string]: number },
   linkElementListHtml?: string[];
+  webhookState?: {
+    sequenceNumber: number,
+    lastOutput:  string[],
+    lastState: CrawlState | undefined,
+  },
 };

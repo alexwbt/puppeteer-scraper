@@ -11,17 +11,18 @@ const crawlerStates: { [id: number]: CrawlerStateData | undefined } = {};
 export const crawl = (id: number, state: CrawlerStateData, option: RootCrawlerPageOption) => {
   if (crawlerStates[id]) return;
 
-  const { onEvent } = createWebhookInstance(option.webhookOption);
+  const { onEvent } = createWebhookInstance(option.webhookOption, state.childState?.webhookState);
 
   const updateCrawlerProcess = async (id: number, state: CrawlState, stateData: CrawlerStateData) => {
+    if (!stateData.childState) stateData.childState = {};
+    // send webhook event
+    onEvent(id, state, stateData.childState)
+      ?.catch(e => logger.error(`(Crawler: ${id}) Failed send webhook event.`, e));
     // update db
     await prismaClient.crawl.update({
       where: { id },
       data: { data: stateData.childState, state },
     });
-    // send webhook event
-    onEvent(id, state, stateData.childState || {})
-      .catch(e => logger.error(`(Crawler: ${id}) Failed send webhook event.`, e));
   };
 
   crawlerStates[id] = state;
