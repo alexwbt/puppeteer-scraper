@@ -1,6 +1,6 @@
 import Joi, { Schema } from "joi";
 import { Offset } from "puppeteer";
-import { ClickOption, CrawlerPageOption, CrawlerWaitOption, ReuseTabOption, RootCrawlerPageOption } from "../../lib/puppeteer/types";
+import { ClickOption, CrawlerPageOption, CrawlerWaitOption, ReuseTabOption, RootCrawlerPageOption, WebhookOption } from "../../lib/puppeteer/types";
 
 const ClickOptionSchema = Joi.object<ClickOption>({
   jsClick: Joi.boolean(),
@@ -51,12 +51,18 @@ const CrawlerPageSchemaContent: Record<keyof CrawlerPageOption, Schema> = {
 };
 export const CrawlerPageSchema = Joi.object<CrawlerPageOption>(CrawlerPageSchemaContent).id("CrawlerPageSchema");
 
+export const WebhookOptionSchema = Joi.object<WebhookOption>({
+  url: Joi.string().required(),
+  events: Joi.array().items(Joi.string().valid("RUNNING", "STOPPED", "COMPLETED", "ERROR")),
+  headers: Joi.object().pattern(Joi.string(), Joi.string()),
+});
+
 export const RootCrawlerPageSchema = Joi.object<RootCrawlerPageOption>({
   ...CrawlerPageSchemaContent,
 
   url: Joi.string().required(),
   proxy: Joi.boolean(),
-
+  webhookOption: WebhookOptionSchema,
   launchOption: Joi.object(),
   navigateOption: Joi.object(),
 }).shared(CrawlerPageSchema);

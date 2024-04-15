@@ -1,3 +1,4 @@
+import { CrawlState } from "@prisma/client";
 import { ClickOptions, GoToOptions, PuppeteerLaunchOptions } from "puppeteer";
 
 export type CrawlerWaitOption = {
@@ -43,22 +44,28 @@ export type CrawlerPageOption = {
   linkLoaderTriggerWaitOption?: CrawlerWaitOption;
 };
 
+export type WebhookOption = {
+  url: string;
+  events?: CrawlState[];
+  headers?: { [header: string]: string; };
+};
+
 export type RootCrawlerPageOption = CrawlerPageOption & {
   url: string;
   proxy?: boolean;
-
+  webhookOption?: WebhookOption;
   launchOption?: PuppeteerLaunchOptions;
   navigateOption?: GoToOptions;
 };
 
-export type CrawlerState = {
+export type CrawlerStateData = {
   error?: string;
   completed?: boolean;
   stopped?: boolean;
   linkLoaderIndex?: number;
   linkElementIndex?: number;
   tabIndex?: number;
-  childState?: CrawlerState;
+  childState?: CrawlerStateData;
   output?: string[];
   savedCount?: { [name: string]: number },
   linkElementListHtml?: string[];

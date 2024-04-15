@@ -3,7 +3,7 @@ import { createWriteStream, promises as fs } from "fs";
 import https from "https";
 import { Page } from "puppeteer";
 import CrawlerPageGetter from "./getter";
-import { CrawlerState } from "./types";
+import { CrawlerStateData } from "./types";
 
 async function downloadPDF(url: string, outputPath: string) {
   const response = await axios({
@@ -34,7 +34,7 @@ export default class CrawlerOutput {
 
   constructor(
     private id: string,
-    private state: CrawlerState,
+    private state: CrawlerStateData,
     private outputDir: string = `./output/${id}`,
     private debugDir: string = `./output/debug`,
   ) { }

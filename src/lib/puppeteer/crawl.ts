@@ -7,7 +7,7 @@ import { getEnvStringRequired } from "../util/env";
 import logger from "../util/logger";
 import CrawlerPageGetter from "./getter";
 import CrawlerOutput from "./output";
-import { ClickOption, CrawlerPageOption, CrawlerState, CrawlerWaitOption, RootCrawlerPageOption } from "./types";
+import { ClickOption, CrawlerPageOption, CrawlerStateData, CrawlerWaitOption, RootCrawlerPageOption } from "./types";
 
 const PROXY_URL_PROMISE = anonymizeProxy(getEnvStringRequired("PROXY_URL"));
 
@@ -87,7 +87,7 @@ const findChildPageOption = (childPage: Page, childrenPage: CrawlerPageOption["c
 };
 
 const triggerLinkLoader = async (
-  state: CrawlerState,
+  state: CrawlerStateData,
   linkLoadingPage: Page,
   {
     linkLoaderSelector,
@@ -115,7 +115,7 @@ const triggerLinkLoader = async (
 };
 
 const triggerLink = async (
-  state: CrawlerState,
+  state: CrawlerStateData,
   pageGetter: CrawlerPageGetter,
   linkElementHtml: string,
   option: CrawlerPageOption,
@@ -145,7 +145,7 @@ const triggerLink = async (
 };
 
 const crawlPage = async (
-  parentState: CrawlerState,
+  parentState: CrawlerStateData,
   pageGetter: CrawlerPageGetter,
   option: CrawlerPageOption,
   output: CrawlerOutput,
@@ -272,7 +272,7 @@ const crawlPage = async (
 
 const crawl = async (
   id: string,
-  state: CrawlerState,
+  state: CrawlerStateData,
   crawlerPage: RootCrawlerPageOption,
   onUpdate: () => Promise<void>,
   onComplete: () => Promise<void>,

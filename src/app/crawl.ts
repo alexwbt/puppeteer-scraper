@@ -1,45 +1,48 @@
 import { CrawlState } from "@prisma/client";
 import RequestHandlerError from "../lib/error/RequestHandlerError";
 import crawl_, { USER_STOPPAGE } from "../lib/puppeteer/crawl";
-import { CrawlerState, RootCrawlerPageOption } from "../lib/puppeteer/types";
+import { CrawlerStateData, RootCrawlerPageOption } from "../lib/puppeteer/types";
 import { prismaClient } from "./prisma";
+import { createWebhookInstance } from "./webhook";
+import logger from "../lib/util/logger";
 
-const crawlerStates: { [id: number]: CrawlerState | undefined } = {};
+const crawlerStates: { [id: number]: CrawlerStateData | undefined } = {};
 
-export const crawl = (id: number, state: CrawlerState, option: RootCrawlerPageOption) => {
+export const crawl = (id: number, state: CrawlerStateData, option: RootCrawlerPageOption) => {
   if (crawlerStates[id]) return;
+
+  const { onEvent } = createWebhookInstance(option.webhookOption);
+
+  const updateCrawlerProcess = async (id: number, state: CrawlState, stateData: CrawlerStateData) => {
+    // update db
+    await prismaClient.crawl.update({
+      where: { id },
+      data: { data: stateData.childState, state },
+    });
+    // send webhook event
+    onEvent(id, CrawlState.STOPPED, stateData.childState || {})
+      .catch(e => logger.error("Failed send webhook event.", e));
+  };
 
   crawlerStates[id] = state;
   crawl_(`${id}`, state, option,
     // on update
     async () => {
       if (state.stopped) {
-        await prismaClient.crawl.update({
-          where: { id },
-          data: { data: state.childState, state: CrawlState.STOPPED },
-        });
+        await updateCrawlerProcess(id, CrawlState.STOPPED, state);
         crawlerStates[id] = undefined;
         throw USER_STOPPAGE;
       }
-      await prismaClient.crawl.update({
-        where: { id },
-        data: { data: state.childState, state: CrawlState.RUNNING },
-      });
+      await updateCrawlerProcess(id, CrawlState.RUNNING, state);
     },
     // on complete
     async () => {
-      await prismaClient.crawl.update({
-        where: { id },
-        data: { data: state.childState, state: CrawlState.COMPLETED },
-      });
+      await updateCrawlerProcess(id, CrawlState.COMPLETED, state);
       crawlerStates[id] = undefined;
     },
     // on error
     async () => {
-      await prismaClient.crawl.update({
-        where: { id },
-        data: { data: state.childState, state: CrawlState.ERROR },
-      });
+      await updateCrawlerProcess(id, CrawlState.ERROR, state);
       crawlerStates[id] = undefined;
     },
   );
