@@ -145,6 +145,7 @@ const triggerLink = async (
 };
 
 const crawlPage = async (
+  rootState: CrawlerStateData,
   parentState: CrawlerStateData,
   pageGetter: CrawlerPageGetter,
   option: CrawlerPageOption,
@@ -170,13 +171,14 @@ const crawlPage = async (
     const fileNames = await output.save(rootPage, fieldSelector, contentSelector);
     await output.debugLog(pageGetter, `Saved to ${fileNames.join(",")}`);
 
-    if (!parentState.output) parentState.output = [];
-    parentState.output.push(...fileNames);
+    if (!rootState.output) rootState.output = [];
+    rootState.output.push(...fileNames);
 
     const url = rootPage.url();
-    if (!parentState.outputUrlMapping) parentState.outputUrlMapping = {};
-    fileNames.forEach(output => parentState.outputUrlMapping![output] = url);
+    if (!rootState.outputUrlMapping) rootState.outputUrlMapping = {};
+    fileNames.forEach(output => rootState.outputUrlMapping![output] = url);
   }
+  await onUpdate();
 
   if (!childrenPage || Object.keys(childrenPage).length === 0)
     return;
@@ -237,8 +239,7 @@ const crawlPage = async (
           );
           // recursive crawl page
           try {
-            await crawlPage(state, childPageGetter, childPageOption, output, onUpdate);
-            await onUpdate();
+            await crawlPage(rootState, state, childPageGetter, childPageOption, output, onUpdate);
           } catch (error: any) {
             if (error === USER_STOPPAGE) throw USER_STOPPAGE;
             await output.debugLog(childPageGetter, `${error}`);
@@ -296,7 +297,6 @@ const crawl = async (
   });
 
   const rootPageGetter = new CrawlerPageGetter(async () => {
-    await onUpdate();
     const pages = await browser.pages();
 
     // re-visit root page if the first tab is blank or speedOptimizationOption.reuseTab is false
@@ -317,7 +317,7 @@ const crawl = async (
     await output.init();
     await output.debugLog(rootPageGetter, `Input: ${JSON.stringify(crawlerPage, undefined, 2)}`);
 
-    await crawlPage(state, rootPageGetter, crawlerPage, output, onUpdate);
+    await crawlPage(state.childState, state, rootPageGetter, crawlerPage, output, onUpdate);
     state.childState.completed = true;
 
     logger.info(`Complete crawling (id: ${id}): ${crawlerPage.url}`);

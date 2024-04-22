@@ -10,7 +10,7 @@ export const createWebhookInstance = (
     baseURL: option.url,
     headers: option.headers,
   });
-  const OUTPUT_EVENT_BATCH_SIZE = option?.minOutputBatchSize || 0;
+  const OUTPUT_EVENT_BATCH_SIZE = option?.minOutputBatchSize || 1;
   let sequenceNumber = initialWebhookState?.sequenceNumber || 1;
   let lastOutput = initialWebhookState?.lastOutput || [];
   let lastState = initialWebhookState?.lastState || undefined;
@@ -20,7 +20,7 @@ export const createWebhookInstance = (
 
   const noChange = (state: CrawlState, data: CrawlerStateData) =>
     lastState === state &&
-    (data.output?.length || 0) - lastOutput.length <= OUTPUT_EVENT_BATCH_SIZE;
+    (data.output?.length || 0) - lastOutput.length < OUTPUT_EVENT_BATCH_SIZE;
 
   const onEvent = (id: number, state: CrawlState, data: CrawlerStateData) => {
     if (!webhookClient || !listensTo(state) || noChange(state, data)) return;
