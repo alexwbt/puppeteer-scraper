@@ -169,8 +169,13 @@ const crawlPage = async (
   if (saveContent) {
     const fileNames = await output.save(rootPage, fieldSelector, contentSelector);
     await output.debugLog(pageGetter, `Saved to ${fileNames.join(",")}`);
+
     if (!parentState.output) parentState.output = [];
     parentState.output.push(...fileNames);
+
+    const url = rootPage.url();
+    if (!parentState.outputUrlMapping) parentState.outputUrlMapping = {};
+    fileNames.forEach(output => parentState.outputUrlMapping![output] = url);
   }
 
   if (!childrenPage || Object.keys(childrenPage).length === 0)

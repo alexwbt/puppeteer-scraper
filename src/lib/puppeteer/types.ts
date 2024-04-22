@@ -69,11 +69,12 @@ export type CrawlerStateData = {
   tabIndex?: number;
   childState?: CrawlerStateData;
   output?: string[];
+  outputUrlMapping?: { [output: string]: string; };
   savedCount?: { [name: string]: number },
   linkElementListHtml?: string[];
   webhookState?: {
     sequenceNumber: number,
-    lastOutput:  string[],
+    lastOutput: string[],
     lastState: CrawlState | undefined,
   },
 };

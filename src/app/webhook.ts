@@ -32,7 +32,13 @@ export const createWebhookInstance = (
     // set webhook state
     data.webhookState = { sequenceNumber, lastOutput, lastState };
     // return promise
-    return webhookClient.post("/", { id, seq: sequenceNumber++, state, output });
+    return webhookClient.post("/", {
+      id,
+      seq: sequenceNumber++,
+      state,
+      output,
+      sourceMap: data.outputUrlMapping
+    });
   };
 
   return { onEvent };

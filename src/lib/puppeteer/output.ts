@@ -83,7 +83,7 @@ export default class CrawlerOutput {
       if (page.url().endsWith(".pdf")) return ["pdf"];
       if (fieldSelector) return ["html", "json"];
       return ["html"];
-    })()
+    })();
 
     const fileNames = await Promise.all(fileTypes.map(fileType => (async () => {
       const fileName = `${this.outputDir}/${name}_${saveCount}.${fileType}`;

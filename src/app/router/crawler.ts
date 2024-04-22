@@ -90,7 +90,7 @@ useRequestHandler({
   },
 });
 
-// Get OUtput
+// Get Output
 crawlerRouter.use("/output", express.static("output"));
 
 export default crawlerRouter;
