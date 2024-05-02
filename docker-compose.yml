@@ -4,7 +4,7 @@ services:
   puppeteer-crawler:
     build:
       context: .
-    image: ivannglivelyimpact/puppeteer-crawler:1.0.0
+    image: ivannglivelyimpact/puppeteer-crawler
     container_name: puppeteer-crawler
     ports:
       - 3000:3000

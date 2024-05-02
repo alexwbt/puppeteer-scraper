@@ -37,7 +37,8 @@ export const createWebhookInstance = (
       seq: sequenceNumber++,
       state,
       output,
-      sourceMap: data.outputUrlMapping
+      sourceMap: data.outputUrlMapping,
+      error: data.error,
     });
   };
 
