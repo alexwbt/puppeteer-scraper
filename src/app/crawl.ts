@@ -15,9 +15,15 @@ export const crawl = (id: number, state: CrawlerStateData, option: RootCrawlerPa
 
   const updateCrawlerProcess = async (id: number, state: CrawlState, stateData: CrawlerStateData) => {
     if (!stateData.childState) stateData.childState = {};
+
     // send webhook event
-    onEvent(id, state, stateData.childState)
-      ?.catch(e => logger.error(`(Crawler: ${id}) Failed send webhook event.`, e));
+    try {
+      const newWebhookState = await onEvent(id, state, stateData.childState);
+      if (newWebhookState) stateData.childState.webhookState = newWebhookState;
+    } catch (e) {
+      logger.error(`(Crawler: ${id}) Failed send webhook event.`, e);
+    }
+
     // update db
     await prismaClient.crawl.update({
       where: { id },

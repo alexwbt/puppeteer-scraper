@@ -22,17 +22,18 @@ export const createWebhookInstance = (
     lastState === state &&
     (data.output?.length || 0) - lastOutput.length < OUTPUT_EVENT_BATCH_SIZE;
 
-  const onEvent = (id: number, state: CrawlState, data: CrawlerStateData) => {
+  const onEvent = async (
+    id: number, state: CrawlState, data: CrawlerStateData
+  ): Promise<CrawlerStateData["webhookState"]> => {
     if (!webhookClient || !listensTo(state) || noChange(state, data)) return;
     const output = option.deduplicateOutput
       ? (data.output || []).filter(o => !lastOutput.includes(o))
       : data.output || [];
     lastState = state;
     lastOutput.push(...output);
-    // set webhook state
-    data.webhookState = { sequenceNumber, lastOutput, lastState };
-    // return promise
-    return webhookClient.post("/", {
+
+    // call webhook
+    await webhookClient.post("/", {
       id,
       seq: sequenceNumber++,
       state,
@@ -40,6 +41,9 @@ export const createWebhookInstance = (
       sourceMap: data.outputUrlMapping,
       error: data.error,
     });
+
+    // return new state
+    return { sequenceNumber, lastOutput, lastState };
   };
 
   return { onEvent };
