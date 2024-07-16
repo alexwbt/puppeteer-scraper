@@ -3,7 +3,7 @@ import RequestHandlerError from "../../lib/error/RequestHandlerError";
 import { useRequestHandler } from "../../lib/router/useRequestHandler";
 import { crawl, stop } from "../crawl";
 import { prismaClient } from "../prisma";
-import { GetCrawlerStateSchema, RootCrawlerPageSchema } from "../schema/crawler";
+import { GetCrawlerStateSchema, RootCrawlerPageSchema, WebhookOptionSchema } from "../schema/crawler";
 
 const crawlerRouter = express.Router();
 
@@ -17,10 +17,13 @@ useRequestHandler({
 
     const state = { childState: { completed: false } };
 
+    const optionWithoutWebhook = { ...option };
+    delete optionWithoutWebhook.webhookOption;
+
     const { id } = await prismaClient.crawl.create({
       data: {
         data: state.childState,
-        option,
+        option: optionWithoutWebhook,
       },
       select: { id: true },
     });
@@ -39,16 +42,19 @@ useRequestHandler({
   router: crawlerRouter,
   method: "post",
   path: "/resume/:id",
+  bodySchema: WebhookOptionSchema,
   paramsSchema: GetCrawlerStateSchema,
-  requestHandler: async ({ params: { id } }) => {
+  requestHandler: async ({ params: { id }, body: webhookOption }) => {
     const crawlProcess = await prismaClient.crawl.findFirst({
       where: { id: +id },
     });
     if (!crawlProcess)
       throw new RequestHandlerError(400, "Invalid id");
 
-    const state = { childState: crawlProcess.data };
-    crawl(crawlProcess.id, state, crawlProcess.option);
+    crawl(
+      crawlProcess.id,
+      { childState: crawlProcess.data },
+      { ...crawlProcess.option, webhookOption });
 
     return { status: 200, };
   },
