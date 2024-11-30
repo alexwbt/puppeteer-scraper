@@ -3,8 +3,8 @@ services:
   puppeteer-crawler:
     build:
       context: .
-    image: ivannglivelyimpact/puppeteer-crawler
-    container_name: puppeteer-crawler
+    image: puppeteer-scraper
+    container_name: puppeteer-scraper
     ports:
       - 3000:3000
       - 5900:5900
